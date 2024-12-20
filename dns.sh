@@ -27,7 +27,7 @@ sed -i 's/#no-hosts/no-hosts/g' /etc/dnsmasq.conf
 while true; do
   NETWORK_ID=$(curl -s --unix-socket /var/run/docker.sock  http://v1.47/networks | jq -r '.[] | select(.Name == "'$NETWORK_NAME'") | .Id')
 
-  curl -s --unix-socket /var/run/docker.sock  http://v1.47/networks/$NETWORK_ID | jq -r '.Containers | .[] | "\(.Name) \(.IPv4Address)"' | sed -E 's/^([^_.]+)_([^\.]+) ([0-9\.]+)\/([0-9]+)/\3 \2.\1.'$DOMAIN_NAME'/' > /etc/container_hosts
+  curl -s --unix-socket /var/run/docker.sock  http://v1.47/networks/$NETWORK_ID | jq -r '.Containers | .[] | "\(.Name) \(.IPv4Address)"' | sed -E 's/^([^_.]+)_([^\.]+).* ([0-9\.]+)\/([0-9]+)/\3 \2.\1.'$DOMAIN_NAME'/' > /etc/container_hosts
 
   pkill -SIGHUP dnsmasq
 
