@@ -6,6 +6,8 @@ administrative tasks. It is also intended to be used with a split DNS style setu
 this container is responsibile for a specific domain name where other names on the network
 are resolved by another DNS setup.
 
+Once online, the server will resolve containers as `<container-name>.<stack-name>.<your-specified-DOMAIN_NAME>`
+
 Under the covers this runs Dnsmasq.
 
 Example running:
