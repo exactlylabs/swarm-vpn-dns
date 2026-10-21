@@ -1,4 +1,4 @@
-VERSION := 0.0.3
+VERSION := 0.0.4
 
 prepare:
 	docker buildx create --name swarm-vpn-dns --use --bootstrap
