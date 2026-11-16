@@ -59,6 +59,8 @@ services:
 
 This will make `myapp.internal` and `api.myapp.internal` resolve to the container's IP in addition to the standard `myapp.stack.internal` domain.
 
+A domain that starts with `*` is a wildcard. For example, `*.myapp.internal` resolves `foo.myapp.internal` and `a.b.myapp.internal`, but not `myapp.internal` itself. Names that are set explicitly, by a label or by the standard domain, take priority over a wildcard.
+
 ### Example running on swarm with Tailscale VPN
 
 Create a network called `vpn` using the command -- replace the subnet with subnet of your choosing. It must be different than anything else on your tailnet. A few prerequisites -- your swarm host must be on your tailnet with a known IP address and you must be able to expose a DNS server on port 53 with udp / tcp on this machine safely / not on the open internet. You must also be ok with the DNS server container having access to Docker / Swarm APIs -- this is needed to discover the IPs that have been issused to the containers within the specified network.

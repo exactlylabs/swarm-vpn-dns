@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
+set -f
+
 if [[ -z "${NETWORK_NAME}" ]]; then
   echo Environment variable NETWORK_NAME must be set >&2
   exit 1
@@ -22,13 +24,25 @@ fi
 # Modify default Dnsmasq config
 sed -i 's/#no-hosts/no-hosts/g' /etc/dnsmasq.conf
 echo "no-resolv" > /etc/dnsmasq.d/upstream.conf
+> /etc/dnsmasq.d/wildcards.conf
 
-/usr/sbin/dnsmasq --addn-hosts /etc/container_hosts
+start_dnsmasq() {
+  /usr/sbin/dnsmasq --keep-in-foreground --addn-hosts /etc/container_hosts &
+  DNSMASQ_PID=$!
+}
+
+start_dnsmasq
 
 while true; do
+  if ! kill -0 "$DNSMASQ_PID"; then
+    echo "dnsmasq is not running" >&2
+    exit 1
+  fi
+
   NETWORK_ID=$(curl -s --unix-socket /var/run/docker.sock  http://v1.47/networks | jq -r '.[] | select(.Name == "'$NETWORK_NAME'") | .Id')
 
   > /etc/container_hosts
+  > /etc/wildcards.next
 
   curl -s --unix-socket /var/run/docker.sock  http://v1.47/networks/$NETWORK_ID | jq -r '.Containers | to_entries[] | "\(.key) \(.value.Name) \(.value.IPv4Address)"' | while read CONTAINER_ID NAME IP_CIDR; do
     IP=$(echo "$IP_CIDR" | cut -d/ -f1)
@@ -40,12 +54,23 @@ while true; do
     EXTRA=$(curl -s --unix-socket /var/run/docker.sock http://v1.47/containers/$CONTAINER_ID/json | jq -r '.Config.Labels["swarm-vpn-dns.domains"] // ""')
     if [ -n "$EXTRA" ]; then
       for DOMAIN in $EXTRA; do
-        echo "$IP $DOMAIN" >> /etc/container_hosts
+        case "$DOMAIN" in
+          \**) echo "address=/$DOMAIN/$IP" >> /etc/wildcards.next ;;
+          *) echo "$IP $DOMAIN" >> /etc/container_hosts ;;
+        esac
       done
     fi
   done
 
-  pkill -SIGHUP dnsmasq
+  # SIGHUP reloads hosts files only, address= changes need a restart
+  if cmp -s /etc/wildcards.next /etc/dnsmasq.d/wildcards.conf; then
+    kill -HUP "$DNSMASQ_PID"
+  else
+    mv /etc/wildcards.next /etc/dnsmasq.d/wildcards.conf
+    kill "$DNSMASQ_PID"
+    wait "$DNSMASQ_PID"
+    start_dnsmasq
+  fi
 
   sleep $REFRESH_INTERVAL
 done

@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.0.5] - 2026-11-16
+
+### Added
+- Wildcard domains (e.g. `*.int.example.com`) in the `swarm-vpn-dns.domains` container label
+
 ## [0.0.4] - 2026-10-21
 
 ### Security
